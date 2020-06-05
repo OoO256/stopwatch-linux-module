@@ -79,7 +79,7 @@ irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg) {
 	pause_jiffies = get_jiffies_64();
 
 	if (did_paused == 0)
-		del_timer(&timer);
+		del_timer_sync(&timer);
 	did_paused = 1;
 	return IRQ_HANDLED;
 }
@@ -176,7 +176,6 @@ void set_timer(unsigned long pause_jiffies)
 {
     // set and add next timer
     timer.expires = get_jiffies_64() + HZ - ( pause_jiffies % HZ );
-    timer.data = NULL;
     timer.function = timer_handler;
     add_timer(&timer);
 }
