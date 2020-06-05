@@ -153,6 +153,7 @@ int iom_open(struct inode *minode, struct file *mfile)
     timer_clock = 0;
     fpga_fnd_port_usage = 1;
     kernel_timer_usage = 1;
+	fnd_write();
     return 0;
 }
 
