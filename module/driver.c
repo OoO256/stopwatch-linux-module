@@ -281,8 +281,9 @@ void __exit iom_exit(void)
 {
 	// unregister device driver
 	printk("exit module\n");
-	unregister_chrdev(MAJOR_NUMBER, DEVICE);
-
+	cdev_del(&inter_cdev);
+	unregister_chrdev_region(inter_dev, 1);
+	
 	// unmap devices
     iounmap(iom_fpga_fnd_addr);
 }
