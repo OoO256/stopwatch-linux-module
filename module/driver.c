@@ -106,12 +106,13 @@ int iom_open(struct inode *minode, struct file *mfile)
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
 	ret=request_irq(irq, inter_handler_voldown_fall, IRQF_TRIGGER_FALLING, "voldown_fall", 0);
 
+    /*
 	// int5
 	gpio_direction_input(IMX_GPIO_NR(5,14));
 	irq = gpio_to_irq(IMX_GPIO_NR(5,14));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
 	ret=request_irq(irq, inter_handler_voldown_rise, IRQF_TRIGGER_RISING, "voldown_rise", 0);
-
+    */
 
     timer_clock = 0;
     fpga_fnd_port_usage = 1;
