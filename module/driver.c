@@ -63,7 +63,7 @@ struct file_operations fops = {
 
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "start timer!\n");
-	set_timer();
+	set_timer(pause_jiffies);
 	return IRQ_HANDLED;
 }
 
@@ -87,7 +87,7 @@ irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
 
 	if (val) {
 		// rise
-		u64 curr_jiffies = jiffies;
+		unsigned long curr_jiffies = get_jiffies_64();
 		if (curr_jiffies - prev_voldown_jiffies >= 3*HZ)
 		{
 			wake_up_interruptible(&wq_write);
@@ -162,10 +162,10 @@ int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
 	return 0;
 }
 
-void set_timer()
+void set_timer(unsigned long pause_jiffies = 0)
 {
     // set and add next timer
-    timer.expires = jiffies + HZ - ( pause_jiffies % HZ );
+    timer.expires = get_jiffies_64() + HZ - ( pause_jiffies % HZ );
     timer.data = NULL;
     timer.function = timer_handler;
     add_timer(&timer);
