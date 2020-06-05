@@ -44,8 +44,6 @@ irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg);
 irqreturn_t inter_handler_volup(int irq, void* dev_id, struct pt_regs* reg);
 irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg);
 
-
-volatile int wq_blocking = 1;
 wait_queue_head_t wq_write;
 DECLARE_WAIT_QUEUE_HEAD(wq_write);
 
@@ -84,7 +82,6 @@ irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
 		if (cur_hz - prev_hz >= 3*HZ)
 		{
 			// clear_stopwatch();
-			wq_blocking = 0;
 			wake_up_interruptible(&wq_write);
 		}
 		prev_hz = cur_hz;
@@ -152,17 +149,10 @@ int iom_release(struct inode *minode, struct file *mfile)
 
 int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
 {
-  	while (wq_blocking)
-    {
-      printk(KERN_NOTICE "sleep on.\n");
-      interruptible_sleep_on(&wq_write);
-      printk(KERN_NOTICE "wake up.\n");
-    }
-
-  wq_blocking = 1;
-  printk(KERN_NOTICE "write\n");
-
-  return 0;
+  	printk("write start\n");
+	interruptible_sleep_on(&wq_write);
+  	printk("write end\n");
+	return 0;
 }
 
 void set_timer()
