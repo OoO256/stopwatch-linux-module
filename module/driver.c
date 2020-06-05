@@ -70,6 +70,8 @@ struct file_operations fops = {
 
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "start timer!\n");
+	printk("%lu", prev_pause_jiffies);
+	printk("%lu", prev_start_jiffies);
 	set_timer(prev_pause_jiffies - prev_start_jiffies);
 	prev_start_jiffies = jiffies;
 	did_paused = 0;
