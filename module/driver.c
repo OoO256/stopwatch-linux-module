@@ -22,6 +22,11 @@
 #define MAJOR_NUMBER 242
 #define DEVICE "/dev/stopwatch"
 
+
+#define IOM_FND_MAJOR 261
+#define IOM_FND_NAME "fpga_fnd"
+#define IOM_FND_ADDRESS 0x08000004
+
 static int inter_major=242, inter_minor=0;
 static int result;
 static dev_t inter_dev;
