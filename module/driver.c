@@ -34,7 +34,7 @@ static unsigned char *iom_fpga_fnd_addr;
 
 void set_timer();
 void timer_handler();
-void write_fnd();
+void fnd_write();
 
 int iom_open(struct inode *minode, struct file *mfile);
 int iom_release(struct inode *minode, struct file *mfile);
