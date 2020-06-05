@@ -70,9 +70,9 @@ struct file_operations fops = {
 
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "start timer!\n");
-	printk("%lu", prev_pause_jiffies);
-	printk("%lu", prev_start_jiffies);
-	printk("%lu", ( (prev_pause_jiffies - prev_start_jiffies) % HZ ));
+	printk("%lu\n", prev_pause_jiffies);
+	printk("%lu\n", prev_start_jiffies);
+	printk("%lu\n", ( (prev_pause_jiffies - prev_start_jiffies) % HZ ));
 	set_timer(prev_pause_jiffies - prev_start_jiffies);
 	prev_start_jiffies = jiffies;
 	did_paused = 0;
@@ -84,17 +84,21 @@ irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg) {
 	prev_pause_jiffies = jiffies;
 
 	if (did_paused == 0)
-		del_timer_sync(&timer);
+		del_timer(&timer);
 	did_paused = 1;
 	return IRQ_HANDLED;
 }
 
 irqreturn_t inter_handler_volup(int irq, void* dev_id,struct pt_regs* reg) {
 	printk(KERN_ALERT "reset timer!\n");
-	del_timer(&timer);
+
+	if (did_paused == 0)
+		del_timer(&timer);
+		
 	timer_clock = 0;
 	prev_start_jiffies = 0;
 	prev_pause_jiffies = 0;
+	did_paused = 0;
 	fnd_write();
 	return IRQ_HANDLED;
 }
