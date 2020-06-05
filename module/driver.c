@@ -69,7 +69,7 @@ irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 
 irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "pause timer!\n");
-	pause_jiffies = jiffies;
+	pause_jiffies = get_jiffies_64();
 	del_timer(&timer);
 	return IRQ_HANDLED;
 }
