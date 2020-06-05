@@ -78,10 +78,8 @@ irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
 	unsigned int val = gpio_get_value(IMX_GPIO_NR(5, 14));
 	printk(KERN_ALERT "VOLDOWN button clicked. %x\n", val);
 
-	if (val==0) {
-		prev_hz = get_jiffies_64();
-	}
-	else {
+	if (val) {
+		// rise
 		u64 cur_hz = get_jiffies_64();
 		if (cur_hz - prev_hz >= 3*HZ)
 		{
@@ -90,6 +88,10 @@ irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
 			wake_up_interruptible(&wq_write);
 		}
 		prev_hz = cur_hz;
+	}
+	else {
+		// fall
+		prev_hz = get_jiffies_64();
 	}
 
 	return IRQ_HANDLED;
@@ -176,7 +178,7 @@ void timer_handler()
 {
     // check timeout 
     if (timer_clock < timer_cnt){
-        
+		printk("%d\n", timer_clock);
         set_timer();
     }
     else{
