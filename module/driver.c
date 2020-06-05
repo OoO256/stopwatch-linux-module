@@ -76,7 +76,7 @@ irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 
 irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "pause timer!\n");
-	pause_jiffies = get_jiffies_64();
+	pause_jiffies = jiffies;
 
 	if (did_paused == 0)
 		del_timer_sync(&timer);
@@ -97,7 +97,7 @@ irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
 
 	if (val) {
 		// rise
-		unsigned long curr_jiffies = get_jiffies_64();
+		unsigned long curr_jiffies = jiffies;
 		if (curr_jiffies - prev_voldown_jiffies >= 3*HZ)
 		{
 			wake_up_interruptible(&wq_write);
@@ -175,7 +175,7 @@ int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
 void set_timer(unsigned long pause_jiffies)
 {
     // set and add next timer
-    timer.expires = get_jiffies_64() + HZ - ( pause_jiffies % HZ );
+    timer.expires = jiffies + HZ - ( pause_jiffies % HZ );
     timer.function = timer_handler;
     add_timer(&timer);
 }
