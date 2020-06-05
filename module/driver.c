@@ -34,7 +34,7 @@ static int kernel_timer_usage = 0;
 static unsigned long prev_voldown_jiffies = 0;
 static unsigned long prev_start_jiffies = 0;
 static unsigned long prev_pause_jiffies = 0;
-static int did_paused = 0;
+static int timer_deleted = 1;
 
 // fnd variables
 static int fpga_fnd_port_usage = 0;
@@ -75,7 +75,7 @@ irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk("%lu\n", ( (prev_pause_jiffies - prev_start_jiffies) % HZ ));
 	set_timer(prev_pause_jiffies - prev_start_jiffies);
 	prev_start_jiffies = jiffies;
-	did_paused = 0;
+	timer_deleted = 0;
 	return IRQ_HANDLED;
 }
 
@@ -83,22 +83,22 @@ irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "pause timer!\n");
 	prev_pause_jiffies = jiffies;
 
-	if (did_paused == 0)
+	if (timer_deleted == 0)
 		del_timer(&timer);
-	did_paused = 1;
+	timer_deleted = 1;
 	return IRQ_HANDLED;
 }
 
 irqreturn_t inter_handler_volup(int irq, void* dev_id,struct pt_regs* reg) {
 	printk(KERN_ALERT "reset timer!\n");
 
-	if (did_paused == 0)
+	if (timer_deleted == 0)
 		del_timer(&timer);
-		
+
 	timer_clock = 0;
 	prev_start_jiffies = 0;
 	prev_pause_jiffies = 0;
-	did_paused = 0;
+	timer_deleted = 1;
 	fnd_write();
 	return IRQ_HANDLED;
 }
@@ -281,7 +281,8 @@ void __exit iom_exit(void)
     iounmap(iom_fpga_fnd_addr);
 
     // delete timer
-    del_timer_sync(&timer);
+	if (timer_deleted == 0)
+    	del_timer(&timer);
 }
 
 module_init(iom_init);
