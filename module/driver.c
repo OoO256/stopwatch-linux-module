@@ -26,8 +26,8 @@
 static struct timer_list timer;
 static int timer_cnt = 3600, timer_clock;
 static int kernel_timer_usage = 0;
-static u64 prev_voldown_jiffies = 0;
-static u64 pause_jiffies = 0;
+static unsigned long prev_voldown_jiffies = 0;
+static unsigned long pause_jiffies = 0;
 
 // fnd variables
 static int fpga_fnd_port_usage = 0;
