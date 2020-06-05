@@ -165,7 +165,7 @@ int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
 void set_timer()
 {
     // set and add next timer
-    timer.expires = jiffies + 1000;
+    timer.expires = jiffies + HZ;
     timer.data = NULL;
     timer.function = timer_handler;
     add_timer(&timer);
