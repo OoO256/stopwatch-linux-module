@@ -22,7 +22,7 @@
 #include "ioctl.h"
 #include "fpga.h"
 
-static int inter_major=0, inter_minor=0;
+static int inter_major=242, inter_minor=0;
 static int result;
 static dev_t inter_dev;
 static struct cdev inter_cdev;
