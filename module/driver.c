@@ -19,8 +19,8 @@
 #include <linux/wait.h>
 #include <mach/gpio.h>
 
-#include "ioctl.h"
-#include "fpga.h"
+#define MAJOR_NUMBER 242
+#define DEVICE "/dev/stopwatch"
 
 static int inter_major=242, inter_minor=0;
 static int result;
