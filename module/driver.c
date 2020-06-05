@@ -22,6 +22,11 @@
 #include "ioctl.h"
 #include "fpga.h"
 
+static int inter_major=0, inter_minor=0;
+static int result;
+static dev_t inter_dev;
+static struct cdev inter_cdev;
+
 // timer variables
 static struct timer_list timer;
 static int timer_cnt = 3600, timer_clock;
@@ -205,13 +210,39 @@ void fnd_write(){
     outw(value_short,(unsigned int)iom_fpga_fnd_addr);
 }
 
+static int inter_register_cdev(void)
+{
+	int error;
+	if(inter_major) {
+		inter_dev = MKDEV(inter_major, inter_minor);
+		error = register_chrdev_region(inter_dev,1,"inter");
+	}else{
+		error = alloc_chrdev_region(&inter_dev,inter_minor,1,"inter");
+		inter_major = MAJOR(inter_dev);
+	}
+	if(error<0) {
+		printk(KERN_WARNING "inter: can't get major %d\n", inter_major);
+		return result;
+	}
+	printk(KERN_ALERT "major number = %d\n", inter_major);
+	cdev_init(&inter_cdev, &inter_fops);
+	inter_cdev.owner = THIS_MODULE;
+	inter_cdev.ops = &inter_fops;
+	error = cdev_add(&inter_cdev, inter_dev, 1);
+	if(error)
+	{
+		printk(KERN_NOTICE "inter Register Error %d\n", error);
+	}
+	return 0;
+}
+
 int __init iom_init(void)
 {	
 	// init module
 	printk("init module\n");
 
     // register device driver
-	int result = register_chrdev(MAJOR_NUMBER, DEVICE, &fops);
+	int result = inter_register_cdev();
     if(result < 0) {
         printk("Cant register driver\n");
         return result;
