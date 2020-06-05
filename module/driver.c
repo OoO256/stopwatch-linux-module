@@ -215,9 +215,9 @@ static int inter_register_cdev(void)
 	int error;
 	if(inter_major) {
 		inter_dev = MKDEV(inter_major, inter_minor);
-		error = register_chrdev_region(inter_dev,1,"inter");
+		error = register_chrdev_region(inter_dev,1, DEVICE);
 	}else{
-		error = alloc_chrdev_region(&inter_dev,inter_minor,1,"inter");
+		error = alloc_chrdev_region(&inter_dev,inter_minor,1, DEVICE);
 		inter_major = MAJOR(inter_dev);
 	}
 	if(error<0) {
