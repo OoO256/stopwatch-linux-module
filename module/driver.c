@@ -24,7 +24,7 @@
 
 // timer variables
 static struct timer_list timer;
-static int timer_interval, timer_cnt = 100, timer_init, timer_clock;
+static int timer_interval, timer_cnt = 3600, timer_init, timer_clock;
 static int kernel_timer_usage = 0;
 static u64 prev_hz = 1;
 
