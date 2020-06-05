@@ -75,7 +75,8 @@ int iom_open(struct inode *minode, struct file *mfile)
     // open devices
 	if(fpga_fnd_port_usage)
         return -EBUSY;
-    
+   	
+	int irq, ret; 
     // int1
 	gpio_direction_input(IMX_GPIO_NR(1,11));
 	irq = gpio_to_irq(IMX_GPIO_NR(1,11));
@@ -174,9 +175,6 @@ void __exit iom_exit(void)
 	unregister_chrdev(MAJOR_NUMBER, DEVICE);
 
 	// unmap devices
-	iounmap(iom_fpga_dot_addr);
-    iounmap(iom_fpga_text_lcd_addr);
-    iounmap(iom_fpga_led_addr);
     iounmap(iom_fpga_fnd_addr);
 
     // delete timer
