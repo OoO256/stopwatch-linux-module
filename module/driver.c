@@ -34,6 +34,7 @@ static unsigned char *iom_fpga_fnd_addr;
 
 void set_timer();
 void timer_handler();
+void write_fnd();
 
 int iom_open(struct inode *minode, struct file *mfile);
 int iom_release(struct inode *minode, struct file *mfile);
@@ -57,6 +58,7 @@ struct file_operations fops = {
 
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "start timer!\n");
+	set_timer();
 	return IRQ_HANDLED;
 }
 
@@ -93,7 +95,6 @@ irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
 
 	return IRQ_HANDLED;
 }
-
 
 int iom_open(struct inode *minode, struct file *mfile)
 {
@@ -168,7 +169,7 @@ void timer_handler()
 {
     // check timeout 
     if (timer_clock < timer_cnt){
-		printk("%d\n", timer_clock);
+		fnd_write();
         set_timer();
     }
     else{
@@ -177,6 +178,20 @@ void timer_handler()
 
     // increase clock
     timer_clock++;
+}
+
+void fnd_write(){
+    unsigned int value[4] = {
+		( timer_clock / 600 ) % 6, 
+		( timer_clock / 60 ) % 10, 
+		( timer_clock / 10 ) % 6, 
+		timer_clock % 10
+	};
+
+    unsigned short int value_short = 0;
+
+    value_short = value[0] << 12 | value[1] << 8 |value[2] << 4 |value[3];
+    outw(value_short,(unsigned int)iom_fpga_fnd_addr);
 }
 
 int __init iom_init(void)
