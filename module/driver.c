@@ -65,8 +65,13 @@ irqreturn_t inter_handler_volup(int irq, void* dev_id,struct pt_regs* reg) {
 	return IRQ_HANDLED;
 }
 
-irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
-	printk(KERN_ALERT "exit timer!\n");
+irqreturn_t inter_handler_voldown_fall(int irq, void* dev_id, struct pt_regs* reg) {
+	printk(KERN_ALERT "_voldown_fall !\n");
+	return IRQ_HANDLED;
+}
+
+irqreturn_t inter_handler_voldown_ries(int irq, void* dev_id, struct pt_regs* reg) {
+	printk(KERN_ALERT "inter_handler_voldown_ries !\n");
 	return IRQ_HANDLED;
 }
 
@@ -98,7 +103,13 @@ int iom_open(struct inode *minode, struct file *mfile)
 	gpio_direction_input(IMX_GPIO_NR(5,14));
 	irq = gpio_to_irq(IMX_GPIO_NR(5,14));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
-	ret=request_irq(irq, inter_handler_voldown, IRQF_TRIGGER_FALLING, "voldown", 0);
+	ret=request_irq(irq, inter_handler_voldown_fall, IRQF_TRIGGER_FALLING, "voldown_fall", 0);
+
+	// int5
+	gpio_direction_input(IMX_GPIO_NR(5,14));
+	irq = gpio_to_irq(IMX_GPIO_NR(5,14));
+	printk(KERN_ALERT "IRQ Number : %d\n",irq);
+	ret=request_irq(irq, inter_handler_voldown_rise, IRQF_TRIGGER_RISING, "voldown_rise", 0);
 
 
     timer_clock = 0;
