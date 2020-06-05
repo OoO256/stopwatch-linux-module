@@ -71,11 +71,11 @@ struct file_operations fops = {
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "start timer!\n");
 	
-	printk("%lu\n", HZ);
-	printk("%lu\n", prev_pause_jiffies);
-	printk("%lu\n", prev_start_jiffies);
-	printk("%lu\n", ( (prev_pause_jiffies - prev_start_jiffies) % HZ ));
-	set_timer(prev_pause_jiffies - prev_start_jiffies);
+	printk("prev_pause_jiffies : %lu\n", prev_pause_jiffies);
+	printk("prev_start_jiffies : %lu\n", prev_start_jiffies);
+	printk("ms : %lu\n", ( (prev_pause_jiffies - prev_start_jiffies) % HZ ));
+	if (timer_deleted)
+		set_timer(prev_pause_jiffies - prev_start_jiffies);
 	prev_start_jiffies = jiffies;
 	timer_deleted = 0;
 	return IRQ_HANDLED;
@@ -283,7 +283,7 @@ void __exit iom_exit(void)
 	printk("exit module\n");
 	cdev_del(&inter_cdev);
 	unregister_chrdev_region(inter_dev, 1);
-	
+
 	// unmap devices
     iounmap(iom_fpga_fnd_addr);
 }
