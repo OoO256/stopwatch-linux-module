@@ -34,7 +34,7 @@ static int fpga_fnd_port_usage = 0;
 static unsigned char *iom_fpga_fnd_addr;
 
 // timer functions
-void set_timer(unsigned long pause_jiffies = 0);
+void set_timer(unsigned long);
 void timer_handler();
 void fnd_write();
 
