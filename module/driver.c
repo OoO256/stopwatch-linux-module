@@ -76,10 +76,6 @@ struct file_operations fops = {
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "start timer!\n");
 	
-	printk("prev_pause_jiffies : %lu\n", prev_pause_jiffies);
-	printk("prev_start_jiffies : %lu\n", prev_start_jiffies);
-	printk("ms : %lu\n", ( (prev_pause_jiffies - prev_start_jiffies) % HZ ));
-	
 	// start timer if timer was deleted
 	if (timer_deleted)
 		set_timer(prev_pause_jiffies - prev_start_jiffies);
