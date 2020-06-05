@@ -225,9 +225,9 @@ static int inter_register_cdev(void)
 		return result;
 	}
 	printk(KERN_ALERT "major number = %d\n", inter_major);
-	cdev_init(&inter_cdev, &inter_fops);
+	cdev_init(&inter_cdev, &fops);
 	inter_cdev.owner = THIS_MODULE;
-	inter_cdev.ops = &inter_fops;
+	inter_cdev.ops = &fops;
 	error = cdev_add(&inter_cdev, inter_dev, 1);
 	if(error)
 	{
