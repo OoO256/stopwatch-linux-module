@@ -33,7 +33,7 @@ static int timer_cnt = 3600, timer_clock;
 static int kernel_timer_usage = 0;
 static unsigned long prev_voldown_jiffies = 0;
 static unsigned long prev_start_jiffies = 0;
-static unsigned long pause_jiffies = 0;
+static unsigned long prev_pause_jiffies = 0;
 static int did_paused = 0;
 
 // fnd variables
@@ -41,7 +41,7 @@ static int fpga_fnd_port_usage = 0;
 static unsigned char *iom_fpga_fnd_addr;
 
 // timer functions
-void set_timer(unsigned long pause_jiffies);
+void set_timer(unsigned long prev_jiffies);
 void timer_handler();
 void fnd_write();
 
@@ -70,7 +70,7 @@ struct file_operations fops = {
 
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "start timer!\n");
-	set_timer(pause_jiffies - prev_start_jiffies);
+	set_timer(prev_pause_jiffies - prev_start_jiffies);
 	prev_start_jiffies = jiffies;
 	did_paused = 0;
 	return IRQ_HANDLED;
@@ -78,7 +78,7 @@ irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 
 irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "pause timer!\n");
-	pause_jiffies = jiffies;
+	prev_pause_jiffies = jiffies;
 
 	if (did_paused == 0)
 		del_timer_sync(&timer);
@@ -88,6 +88,11 @@ irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg) {
 
 irqreturn_t inter_handler_volup(int irq, void* dev_id,struct pt_regs* reg) {
 	printk(KERN_ALERT "reset timer!\n");
+	del_timer(&timer);
+	timer_clock = 0;
+	prev_start_jiffies = 0;
+	prev_pause_jiffies = 0;
+	fnd_write();
 	return IRQ_HANDLED;
 }
 
@@ -174,10 +179,10 @@ int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
 	return 0;
 }
 
-void set_timer(unsigned long pause_jiffies)
+void set_timer(unsigned long prev_jiffies)
 {
     // set and add next timer
-    timer.expires = jiffies + HZ - ( pause_jiffies % HZ );
+    timer.expires = jiffies + HZ - ( prev_jiffies % HZ );
     timer.function = timer_handler;
     add_timer(&timer);
 }
