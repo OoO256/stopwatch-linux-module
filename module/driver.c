@@ -24,30 +24,36 @@
 // timer variables
 static struct timer_list timer;
 static int timer_interval, timer_cnt = 100, timer_init, timer_clock;
+static int kernel_timer_usage = 0;
+static u64 prev_hz = 1;
 
 // devcies variables
 static int fpga_fnd_port_usage = 0;
-
 static unsigned char *iom_fpga_fnd_addr;
-
-static int kernel_timer_usage = 0;
 
 void set_timer();
 void timer_handler();
 
 int iom_open(struct inode *minode, struct file *mfile);
 int iom_release(struct inode *minode, struct file *mfile);
+int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos);
 
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg);
 irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg);
 irqreturn_t inter_handler_volup(int irq, void* dev_id, struct pt_regs* reg);
 irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg);
 
+
+volatile int wq_blocking = 1;
+wait_queue_head_t wq_write;
+DECLARE_WAIT_QUEUE_HEAD(wq_write);
+
 // define file_operations structure 
 struct file_operations fops = {
 	.owner		=	THIS_MODULE,
 	.open		=	iom_open,
-	.release	=	iom_release
+	.release	=	iom_release,
+	.write		=	iom_write
 };
 
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
@@ -65,15 +71,29 @@ irqreturn_t inter_handler_volup(int irq, void* dev_id,struct pt_regs* reg) {
 	return IRQ_HANDLED;
 }
 
-irqreturn_t inter_handler_voldown_fall(int irq, void* dev_id, struct pt_regs* reg) {
-	printk(KERN_ALERT "_voldown_fall !\n");
+irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
+	printk(KERN_ALERT "voldown!\n");
+
+	unsigned int val = gpio_get_value(IMX_GPIO_NR(5, 14));
+	printk(KERN_ALERT "VOLDOWN button clicked. %x\n", val);
+
+	if (val==0) {
+		prev_hz = get_jiffies_64();
+	}
+	else {
+		u64 cur_hz = get_jiffies_64();
+		if (cur_hz - prev_hz >= 3*HZ)
+		{
+			// clear_stopwatch();
+			wq_blocking = 0;
+			wake_up_interruptible(&wq_write);
+		}
+		prev_hz = cur_hz;
+	}
+
 	return IRQ_HANDLED;
 }
 
-irqreturn_t inter_handler_voldown_ries(int irq, void* dev_id, struct pt_regs* reg) {
-	printk(KERN_ALERT "inter_handler_voldown_ries !\n");
-	return IRQ_HANDLED;
-}
 
 int iom_open(struct inode *minode, struct file *mfile)
 {
@@ -104,15 +124,7 @@ int iom_open(struct inode *minode, struct file *mfile)
 	gpio_direction_input(IMX_GPIO_NR(5,14));
 	irq = gpio_to_irq(IMX_GPIO_NR(5,14));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
-	ret=request_irq(irq, inter_handler_voldown_fall, IRQF_TRIGGER_FALLING, "voldown_fall", 0);
-
-    /*
-	// int5
-	gpio_direction_input(IMX_GPIO_NR(5,14));
-	irq = gpio_to_irq(IMX_GPIO_NR(5,14));
-	printk(KERN_ALERT "IRQ Number : %d\n",irq);
-	ret=request_irq(irq, inter_handler_voldown_rise, IRQF_TRIGGER_RISING, "voldown_rise", 0);
-    */
+	ret=request_irq(irq, inter_handler_voldown, IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, "voldown", 0);
 
     timer_clock = 0;
     fpga_fnd_port_usage = 1;
@@ -133,6 +145,21 @@ int iom_release(struct inode *minode, struct file *mfile)
 	free_irq(gpio_to_irq(IMX_GPIO_NR(2, 15)), NULL);
 	free_irq(gpio_to_irq(IMX_GPIO_NR(5, 14)), NULL);
 	return 0;
+}
+
+int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
+{
+  	while (wq_blocking)
+    {
+      printk(KERN_NOTICE "sleep on.\n");
+      interruptible_sleep_on(&wq_write);
+      printk(KERN_NOTICE "wake up.\n");
+    }
+
+  wq_blocking = 1;
+  printk(KERN_NOTICE "write\n");
+
+  return 0;
 }
 
 void set_timer()

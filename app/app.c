@@ -24,14 +24,8 @@ int main(int argc, char** argv){
         printf("< Device has been detected > \n"); 
     }
     
-    /*
-    // send timer args
-    ioctl(dev, IOCTL_WRITE_TIMER, &args);
-    // start timer
-    ioctl(dev, IOCTL_ON);
-    */
-
-    // release devices
+    char buf[2] = {0,};
+    write(dev, buf, 2);
     close(dev);
     return 0;
 }
