@@ -70,6 +70,8 @@ struct file_operations fops = {
 
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "start timer!\n");
+	
+	printk("%lu\n", HZ);
 	printk("%lu\n", prev_pause_jiffies);
 	printk("%lu\n", prev_start_jiffies);
 	printk("%lu\n", ( (prev_pause_jiffies - prev_start_jiffies) % HZ ));
@@ -167,6 +169,10 @@ int iom_open(struct inode *minode, struct file *mfile)
 int iom_release(struct inode *minode, struct file *mfile)
 {
     timer_clock = 0;
+    // delete timer
+	if (timer_deleted == 0)
+    	del_timer(&timer);
+	fnd_write();
 
     // release devices
     fpga_fnd_port_usage = 0;
@@ -279,10 +285,6 @@ void __exit iom_exit(void)
 
 	// unmap devices
     iounmap(iom_fpga_fnd_addr);
-
-    // delete timer
-	if (timer_deleted == 0)
-    	del_timer(&timer);
 }
 
 module_init(iom_init);
