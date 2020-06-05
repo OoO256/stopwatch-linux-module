@@ -32,6 +32,7 @@ static struct timer_list timer;
 static int timer_cnt = 3600, timer_clock;
 static int kernel_timer_usage = 0;
 static unsigned long prev_voldown_jiffies = 0;
+static unsigned long prev_start_jiffies = 0;
 static unsigned long pause_jiffies = 0;
 static int did_paused = 0;
 
@@ -69,7 +70,8 @@ struct file_operations fops = {
 
 irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "start timer!\n");
-	set_timer(pause_jiffies);
+	set_timer(pause_jiffies - prev_start_jiffies);
+	prev_start_jiffies = jiffies;
 	did_paused = 0;
 	return IRQ_HANDLED;
 }
