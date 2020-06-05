@@ -34,7 +34,7 @@ static int fpga_fnd_port_usage = 0;
 static unsigned char *iom_fpga_fnd_addr;
 
 // timer functions
-void set_timer(unsigned long);
+void set_timer(unsigned long pause_jiffies);
 void timer_handler();
 void fnd_write();
 
@@ -162,7 +162,7 @@ int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
 	return 0;
 }
 
-void set_timer(unsigned long pause_jiffies = 0)
+void set_timer(unsigned long pause_jiffies)
 {
     // set and add next timer
     timer.expires = get_jiffies_64() + HZ - ( pause_jiffies % HZ );
@@ -176,7 +176,7 @@ void timer_handler()
     // check timeout 
     if (timer_clock < timer_cnt){
 		fnd_write();
-        set_timer();
+        set_timer(0);
     }
     else{
         printk("timeout\n");
