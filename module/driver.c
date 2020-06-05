@@ -22,11 +22,11 @@
 #define MAJOR_NUMBER 242
 #define DEVICE "/dev/stopwatch"
 
-
 #define IOM_FND_MAJOR 261
 #define IOM_FND_NAME "fpga_fnd"
 #define IOM_FND_ADDRESS 0x08000004
 
+// driver variables
 static int inter_major=242, inter_minor=0;
 static int result;
 static dev_t inter_dev;
@@ -79,8 +79,12 @@ irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 	printk("prev_pause_jiffies : %lu\n", prev_pause_jiffies);
 	printk("prev_start_jiffies : %lu\n", prev_start_jiffies);
 	printk("ms : %lu\n", ( (prev_pause_jiffies - prev_start_jiffies) % HZ ));
+	
+	// start timer if timer was deleted
 	if (timer_deleted)
 		set_timer(prev_pause_jiffies - prev_start_jiffies);
+
+	// set prev_start_jiffies
 	prev_start_jiffies = jiffies;
 	timer_deleted = 0;
 	return IRQ_HANDLED;
@@ -88,8 +92,10 @@ irqreturn_t inter_handler_home(int irq, void* dev_id, struct pt_regs* reg) {
 
 irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "pause timer!\n");
+	// set last prev_pause_jiffies
 	prev_pause_jiffies = jiffies;
 
+	// if timer is not deleted, delete timer
 	if (timer_deleted == 0)
 		del_timer(&timer);
 	timer_deleted = 1;
@@ -99,9 +105,11 @@ irqreturn_t inter_handler_back(int irq, void* dev_id, struct pt_regs* reg) {
 irqreturn_t inter_handler_volup(int irq, void* dev_id,struct pt_regs* reg) {
 	printk(KERN_ALERT "reset timer!\n");
 
+	// if timer is not deleted, delete timer
 	if (timer_deleted == 0)
 		del_timer(&timer);
 
+	// reset timer variables
 	timer_clock = 0;
 	prev_start_jiffies = 0;
 	prev_pause_jiffies = 0;
@@ -113,11 +121,12 @@ irqreturn_t inter_handler_volup(int irq, void* dev_id,struct pt_regs* reg) {
 irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
 	printk(KERN_ALERT "voldown!\n");
 
-	unsigned int val = gpio_get_value(IMX_GPIO_NR(5, 14));
-	printk(KERN_ALERT "VOLDOWN button clicked. %x\n", val);
+	unsigned int voldown_state = gpio_get_value(IMX_GPIO_NR(5, 14));
 
-	if (val) {
-		// rise
+	if (voldown_state) {
+		// voldown botton rise
+
+		// if more than 3 secs passed, wake up application
 		unsigned long curr_jiffies = jiffies;
 		if (curr_jiffies - prev_voldown_jiffies >= 3*HZ)
 		{
@@ -126,7 +135,7 @@ irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
 		prev_voldown_jiffies = curr_jiffies;
 	}
 	else {
-		// fall
+		// voldown botton fall
 		prev_voldown_jiffies = jiffies;
 	}
 
@@ -135,35 +144,35 @@ irqreturn_t inter_handler_voldown(int irq, void* dev_id, struct pt_regs* reg) {
 
 int iom_open(struct inode *minode, struct file *mfile)
 {
-    // open devices
 	if(fpga_fnd_port_usage)
         return -EBUSY;
    	
 	int irq, ret; 
-    // int1
+    // request home interrupt
 	gpio_direction_input(IMX_GPIO_NR(1,11));
 	irq = gpio_to_irq(IMX_GPIO_NR(1,11));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
 	ret=request_irq(irq, inter_handler_home, IRQF_TRIGGER_FALLING, "home", 0);
 
-	// int2
+    // request back interrupt
 	gpio_direction_input(IMX_GPIO_NR(1,12));
 	irq = gpio_to_irq(IMX_GPIO_NR(1,12));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
 	ret=request_irq(irq, inter_handler_back, IRQF_TRIGGER_FALLING, "back", 0);
 
-	// int3
+    // request volup interrupt
 	gpio_direction_input(IMX_GPIO_NR(2,15));
 	irq = gpio_to_irq(IMX_GPIO_NR(2,15));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
 	ret=request_irq(irq, inter_handler_volup, IRQF_TRIGGER_FALLING, "volup", 0);
 
-	// int4
+    // request voldown interrupt
 	gpio_direction_input(IMX_GPIO_NR(5,14));
 	irq = gpio_to_irq(IMX_GPIO_NR(5,14));
 	printk(KERN_ALERT "IRQ Number : %d\n",irq);
 	ret=request_irq(irq, inter_handler_voldown, IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING, "voldown", 0);
 
+	// set timer variables
     timer_clock = 0;
     fpga_fnd_port_usage = 1;
     kernel_timer_usage = 1;
@@ -174,15 +183,18 @@ int iom_open(struct inode *minode, struct file *mfile)
 int iom_release(struct inode *minode, struct file *mfile)
 {
     timer_clock = 0;
-    // delete timer
+    // if timer is still working, delete timer
 	if (timer_deleted == 0)
     	del_timer(&timer);
+
+	// show 0000
 	fnd_write();
 
     // release devices
     fpga_fnd_port_usage = 0;
     kernel_timer_usage = 0;
 
+	// free irqs
     free_irq(gpio_to_irq(IMX_GPIO_NR(1, 11)), NULL);
 	free_irq(gpio_to_irq(IMX_GPIO_NR(1, 12)), NULL);
 	free_irq(gpio_to_irq(IMX_GPIO_NR(2, 15)), NULL);
@@ -190,7 +202,7 @@ int iom_release(struct inode *minode, struct file *mfile)
 	return 0;
 }
 
-int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
+int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos)
 {
   	printk("write start\n");
 	interruptible_sleep_on(&wq_write);
@@ -201,6 +213,7 @@ int iom_write(struct file *filp, const char *buf, size_t count, loff_t *f_pos )
 void set_timer(unsigned long prev_jiffies)
 {
     // set and add next timer
+	// calculate expires if last prev_jiffies is not 0
     timer.expires = jiffies + HZ - ( prev_jiffies % HZ );
     timer.function = timer_handler;
     add_timer(&timer);
@@ -222,6 +235,8 @@ void timer_handler()
 }
 
 void fnd_write(){
+	// write timer_clock on fnd display in mm:ss format
+
     unsigned int value[4] = {
 		( timer_clock / 600 ) % 6, 
 		( timer_clock / 60 ) % 10, 
@@ -237,6 +252,7 @@ void fnd_write(){
 
 static int inter_register_cdev(void)
 {
+	// register chrdev region
 	int error;
 	if(inter_major) {
 		inter_dev = MKDEV(inter_major, inter_minor);
